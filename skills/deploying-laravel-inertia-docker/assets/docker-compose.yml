@@ -1,0 +1,90 @@
+# Production (Dokploy + Traefik). Semua nilai rahasia berasal dari environment panel / .env.
+# Wajib diset: APP_KEY, APP_DOMAIN, DB_PASSWORD, DB_ROOT_PASSWORD. APP_SLUG harus unik per host.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: ${APP_SLUG:-app}
+    restart: unless-stopped
+    environment:
+      APP_NAME: ${APP_NAME:-Laravel}
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: ${APP_KEY:?APP_KEY belum diset}
+      APP_URL: https://${APP_DOMAIN:?APP_DOMAIN belum diset}
+      APP_LOCALE: ${APP_LOCALE:-en}
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_DATABASE: ${DB_DATABASE:-app}
+      DB_USERNAME: ${DB_USERNAME:-app}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD belum diset}
+      SESSION_DRIVER: database
+      QUEUE_CONNECTION: database
+      CACHE_STORE: database
+      FILESYSTEM_DISK: ${FILESYSTEM_DISK:-local}
+      RUN_SEEDERS: ${RUN_SEEDERS:-false}
+      INERTIA_SSR_ENABLED: ${INERTIA_SSR_ENABLED:-true}
+      INERTIA_SSR_URL: http://127.0.0.1:13714
+    volumes:
+      - app-storage:/var/www/html/storage
+      - app-logs:/var/log/supervisor
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost/up"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    networks:
+      - app-network
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      # Container ada di 2 network: tanpa baris ini Traefik bisa memilih network yang salah (502)
+      - "traefik.docker.network=dokploy-network"
+      # HTTP -> HTTPS redirect (middleware didefinisikan di sini agar tidak bergantung konfigurasi Traefik host)
+      - "traefik.http.middlewares.${APP_SLUG:-app}-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.${APP_SLUG:-app}-http.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.${APP_SLUG:-app}-http.entrypoints=web"
+      - "traefik.http.routers.${APP_SLUG:-app}-http.middlewares=${APP_SLUG:-app}-https"
+      # HTTPS (Let's Encrypt)
+      - "traefik.http.routers.${APP_SLUG:-app}.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.${APP_SLUG:-app}.entrypoints=websecure"
+      - "traefik.http.routers.${APP_SLUG:-app}.tls.certresolver=letsencrypt"
+      - "traefik.http.services.${APP_SLUG:-app}.loadbalancer.server.port=80"
+
+  db:
+    image: mysql:8.0
+    container_name: ${APP_SLUG:-app}-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-app}
+      MYSQL_USER: ${DB_USERNAME:-app}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD belum diset}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD belum diset}
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+  dokploy-network:
+    external: true
+
+volumes:
+  db-data:
+  app-storage:
+  app-logs:

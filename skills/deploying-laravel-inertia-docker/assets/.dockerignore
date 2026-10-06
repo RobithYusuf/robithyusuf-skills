@@ -1,0 +1,23 @@
+# Jangan pernah memasukkan .env ke image (rahasia ikut ter-bake ke layer)
+.env
+.env.*
+!.env.example
+
+.git
+node_modules
+vendor
+public/build
+public/hot
+public/storage
+bootstrap/ssr
+bootstrap/cache/*.php
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+docker-compose*.yml
+tests
+.idea
+.vscode
+.DS_Store
+npm-debug.log*

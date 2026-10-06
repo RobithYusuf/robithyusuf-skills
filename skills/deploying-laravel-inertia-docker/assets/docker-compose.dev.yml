@@ -1,0 +1,54 @@
+# Development: source di-mount (hot-reload), Vite HMR di :5173, MySQL di host :3307.
+# DB_PASSWORD & DB_ROOT_PASSWORD dibaca dari .env proyek (compose membacanya otomatis).
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: ${APP_SLUG:-app}
+    ports:
+      - "8080:80"     # App (Nginx -> PHP-FPM)
+      - "5173:5173"   # Vite HMR
+    volumes:
+      - .:/var/www/html                 # Source code (hot-reload)
+      - /var/www/html/vendor            # Anonymous volume: di-install di container
+      - /var/www/html/node_modules      # Anonymous volume: binary native sesuai Alpine
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8080
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_DATABASE: ${DB_DATABASE:-app}
+      DB_USERNAME: ${DB_USERNAME:-app}
+      DB_PASSWORD: ${DB_PASSWORD:?isi DB_PASSWORD di .env}
+      MYSQL_ATTR_SSL_VERIFY: "false"
+      INERTIA_SSR_ENABLED: "false"
+      RUN_SEEDERS: ${RUN_SEEDERS:-true}
+      MAIL_MAILER: log
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.0
+    container_name: ${APP_SLUG:-app}-db
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-app}
+      MYSQL_USER: ${DB_USERNAME:-app}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?isi DB_PASSWORD di .env}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?isi DB_ROOT_PASSWORD di .env}
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  db-data:

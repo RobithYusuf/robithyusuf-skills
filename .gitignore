@@ -1,0 +1,44 @@
+# --- Kredensial & data sensitif (jangan pernah di-commit) ---
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+id_rsa*
+id_ed25519*
+credentials*.json
+service-account*.json
+*.har
+cookies*.json
+cookie*.txt
+storage-state*.json
+*.sqlite
+*.db
+
+# --- Catatan lokal (inventaris pribadi, draft) ---
+*.local.md
+*.local.*
+.local/
+
+# --- Artefak kerja skill (eval, workspace) ---
+*-workspace/
+evals/results/
+
+# --- Build & cache ---
+__pycache__/
+*.pyc
+node_modules/
+.venv/
+dist/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
