@@ -1,10 +1,10 @@
 ---
 name: setting-up-laravel-wayfinder
-description: Memasang Laravel Wayfinder (fungsi TypeScript ter-generate dari route dan controller Laravel) di proyek Laravel + Inertia + Svelte/React/Vue + Vite, serta memigrasikan proyek yang sudah memakai Ziggy (route() global, @routes, ziggy-js) ke Wayfinder termasuk penanganan build Docker/CI tanpa PHP. Gunakan saat pengguna ingin menambah Wayfinder, mengganti Ziggy, merapikan pemanggilan route di frontend, atau build gagal karena plugin Wayfinder butuh php artisan. Cocok untuk permintaan seperti pasang wayfinder, migrasi ziggy ke wayfinder, hapus ziggy, ganti route() dengan wayfinder, type-safe route laravel, install laravel wayfinder, migrate from ziggy, wayfinder docker build failed, Cannot find module @/actions.
+description: Memasang Laravel Wayfinder (fungsi TypeScript ter-generate dari route dan controller Laravel) di proyek Laravel + Inertia + Svelte/React/Vue + Vite, memigrasikan proyek yang sudah memakai Ziggy (route() global, @routes, ziggy-js) ke Wayfinder, dan menangani build Docker/CI tanpa PHP. Gunakan saat pengguna ingin menambah Wayfinder, mengganti Ziggy, atau build gagal karena plugin Wayfinder butuh php artisan. Untuk pemakaian sehari-hari (import dari @/actions dan @/routes, .url(), .form(), useForm) pakai skill resmi wayfinder-development dari Laravel Boost. Cocok untuk permintaan seperti pasang wayfinder, migrasi ziggy ke wayfinder, hapus ziggy, ganti route() dengan wayfinder, install laravel wayfinder, migrate from ziggy, wayfinder docker build failed, Cannot find module @/actions.
 license: MIT
 metadata:
   author: robithyusuf
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Memasang Laravel Wayfinder
@@ -52,6 +52,8 @@ php artisan wayfinder:generate
 ```
 
 Hasilnya tiga direktori di `resources/js/`: `actions/` (per controller, mis. `actions/App/Http/Controllers/PostController.ts`), `routes/` (per named route, mis. `routes/post.ts`), dan `wayfinder/` (helper internal). Pastikan ketiganya muncul sebelum lanjut.
+
+Branch `next` (`composer require laravel/wayfinder:dev-next`) menambah generate tipe untuk Form Request, model Eloquent, enum PHP, props halaman Inertia, channel broadcast, dan `import.meta.env`. Jangan pasang di proyek produksi tanpa persetujuan pengguna karena API-nya belum stabil; cek README branch itu untuk nama perintah/opsi terkini.
 
 **2. Vite plugin.** Letakkan `wayfinder()` setelah `laravel()` dan sebelum plugin framework. Plugin menjalankan `wayfinder:generate` saat `vite dev`/`vite build` dan me-regenerate saat route atau controller berubah.
 
@@ -110,26 +112,18 @@ Hati-hati bila proyek sudah punya `resources/js/routes/` atau `resources/js/acti
 
 Langkah lengkap, tabel pemetaan, dan contoh sebelum/sesudah: [references/migrating-from-ziggy.md](references/migrating-from-ziggy.md).
 
-## Pemakaian inti
+## Pemakaian sehari-hari
 
-Setiap fungsi mengembalikan `{ url, method }`; `.url()` hanya string.
+Skill ini berhenti di setup, migrasi, dan build. Untuk menulis kode frontend yang memakai Wayfinder (import dari `@/actions` / `@/routes`, `.url()`, `.get()/.post()`, `.form()`, query, `useForm`/`<Form>` Inertia), ikuti skill resmi `wayfinder-development` yang dibawa paket `laravel/wayfinder`. Proyek yang memakai Laravel Boost mendapatkannya lewat:
 
-```typescript
-import { show, store } from '@/actions/App/Http/Controllers/PostController'; // per controller
-import { dashboard } from '@/routes/admin';                                  // per named route admin.dashboard
-
-show(1);                               // { url: '/posts/1', method: 'get' }
-show.url(1);                           // '/posts/1'
-show.url(1, { query: { page: 2 } });   // '/posts/1?page=2'
+```bash
+composer require laravel/boost --dev
+php artisan boost:install     # pilih skill wayfinder-development; perbarui dengan php artisan boost:update
 ```
 
-Aturan yang sering terlewat:
-- Untuk `router.visit`, `form.post/delete(...)`, dan `href`, pakai `.url()`. Itu selalu bekerja di semua versi Inertia. Versi Inertia yang mendukung Wayfinder juga menerima objeknya langsung (`form.submit(store())`, `<Link href={show(1)}>`).
-- Import fungsi spesifik (`{ show }`), bukan default export controller, agar tree-shaking bekerja.
-- Method controller bernama reserved word JS diberi akhiran `Method` (`delete` → `deleteMethod`). `destroy` tetap `destroy`.
-- Satu controller method yang dipakai beberapa route (mis. `ProfileController@edit` untuk `/profile` dan `/admin/profile`) membuat export di `actions/` jadi dictionary per URI, bukan fungsi. Pakai import dari `@/routes/...` untuk kasus itu.
+`npx skills add laravel/wayfinder` tidak bisa dipakai karena skill resmi berbentuk template Blade (`SKILL.blade.php`) yang dirender oleh Boost. Tanpa Boost, rujuk README `laravel/wayfinder` (bagian parameter, query/`mergeQuery`, form variant, Inertia).
 
-Parameter, query, form variant, invokable controller, contoh Inertia untuk Svelte/React/Vue, dan fitur branch `next`: [references/api.md](references/api.md).
+Hal yang tidak dibahas skill resmi tetapi penting saat migrasi (pemetaan `route()` → Wayfinder, `route().current`, query string, satu method untuk beberapa route, `.url()` vs objek di Inertia) ada di [references/migrating-from-ziggy.md](references/migrating-from-ziggy.md).
 
 ## Verifikasi
 
@@ -153,13 +147,12 @@ Lalu buka setiap halaman yang memakai link/form/redirect dan pastikan tidak ada 
 | `Cannot find module '@/actions/...'` | Belum di-generate, atau alias `@` belum ada | `php artisan wayfinder:generate`; cek alias Vite + tsconfig |
 | `npm run build` gagal di stage Docker, stack trace dari `vite-plugin-wayfinder` | Plugin memanggil `php artisan`, stage hanya punya Node | [references/docker-and-ci.md](references/docker-and-ci.md) |
 | `Could not load resources/js/routes/<name>` setelah deploy | Generate membaca route cache lama | `php artisan route:clear` sebelum `npm run build` |
-| Export di `actions/` berupa objek ber-key URI, tidak bisa dipanggil | Satu method dipakai beberapa route | Import dari `@/routes/...` |
+| Export di `actions/` berupa objek ber-key URI, tidak bisa dipanggil | Satu method dipakai beberapa route | Import dari `@/routes/...` (lihat [migrating-from-ziggy.md](references/migrating-from-ziggy.md)) |
 | Nama `deleteMethod`, bukan `delete` | `delete` reserved word JS | Pakai `deleteMethod()` |
 | Route berubah tapi TypeScript tidak ikut | Dev server tidak jalan / plugin di-skip | Restart `vite dev` atau generate manual |
 | Parameter salah / `.url()` tidak sesuai harapan | Signature berbeda dari dugaan | Baca file ter-generate untuk signature sebenarnya |
 
 ## Rujukan
 
-- [references/api.md](references/api.md): baca saat menulis kode frontend yang memakai fungsi Wayfinder (parameter, query, form, Inertia per stack).
-- [references/migrating-from-ziggy.md](references/migrating-from-ziggy.md): baca saat proyek sudah memakai Ziggy.
+- [references/migrating-from-ziggy.md](references/migrating-from-ziggy.md): baca saat proyek sudah memakai Ziggy (termasuk tabel pemetaan `route()` dan kasus khusus pemanggilan).
 - [references/docker-and-ci.md](references/docker-and-ci.md): baca saat build frontend berjalan di Docker multi-stage atau CI tanpa PHP, atau saat menyiapkan skrip deploy.

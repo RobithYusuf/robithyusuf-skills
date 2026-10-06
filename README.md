@@ -72,6 +72,8 @@ skills/nama-skill/
 └── assets/        # opsional: template, data
 ```
 
+Sebelum menulis skill baru, cek dulu skill resmi atau populer untuk topik itu (Laravel Boost, sveltejs/ai-tools, anthropics/skills, dll.). Skill di repo ini hanya mengisi hal yang belum dicakup, dan sengaja dibuat ramping karena skill yang terlalu lengkap bisa membuat agent kaku. Lihat langkah 0 di panduan.
+
 Aturan penulisannya ada di [panduan penulisan](skills/creating-agent-skills/references/panduan-penulisan.md). Ringkasnya:
 - `name` sama dengan nama folder, huruf kecil dan `-`, maksimal 64 karakter.
 - `description` menjelaskan **apa** yang dilakukan **dan kapan** dipakai, plus kata pemicu (maksimal 1024 karakter).

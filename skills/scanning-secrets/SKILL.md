@@ -4,7 +4,7 @@ description: Memindai file, perubahan yang di-stage, atau seluruh riwayat git un
 license: MIT
 metadata:
   author: robithyusuf
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Memindai Kredensial Bocor
@@ -31,6 +31,8 @@ python3 scripts/scan_secrets.py --history    # sebelum repo lama dijadikan publi
 
 Bila `gitleaks` terpasang, jalankan juga sebagai lapisan kedua karena aturannya lebih banyak:
 `gitleaks dir . --redact` dan `gitleaks git . --redact`.
+
+Untuk mengetahui apakah key yang ditemukan **masih aktif**, `trufflehog git file://. --results=verified` mengujinya langsung ke API penyedia. Karena key ikut dikirim ke penyedianya, minta izin pengguna dulu.
 
 Selain itu periksa hal yang tidak bisa ditangkap pola: path absolut berisi nama pengguna, IP/hostname server pribadi, email pribadi, ID proyek internal. Gunakan `grep -rnE '/Users/|/home/|[0-9]{1,3}(\.[0-9]{1,3}){3}' .`.
 

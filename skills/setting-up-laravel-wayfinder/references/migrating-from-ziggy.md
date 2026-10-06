@@ -6,7 +6,7 @@ Kerjakan setelah langkah 1-4 di SKILL.md (Wayfinder terpasang dan sudah di-gener
 
 - Ziggy vs Wayfinder
 - Langkah 5: inventaris
-- Langkah 6: ganti pemanggilan `route()`
+- Langkah 6: ganti pemanggilan `route()` (pemetaan, actions vs routes, satu method untuk beberapa route, Inertia)
 - Langkah 7: bongkar infrastruktur Ziggy
 - Checklist migrasi
 
@@ -53,20 +53,53 @@ Titik sentuh yang umum:
 
 ## Langkah 6: ganti pemanggilan `route()`
 
-Pemetaan:
+### Actions vs routes
+
+Nama route Ziggy (`admin.user.index`) dipetakan paling jelas ke `@/routes/...` (`import { index } from '@/routes/admin/user'`). Pakai `@/actions/App/Http/Controllers/...` untuk route tanpa nama. Pakai `@/routes/...` juga bila satu method controller dipakai beberapa route (lihat di bawah). Bentrok nama antar-import diatasi dengan alias: `import { edit as profileEdit } from '@/routes/admin/profile'`.
+
+### Pemetaan
 
 | Ziggy | Wayfinder |
 |---|---|
 | `route('admin.dashboard')` | `import { dashboard } from '@/routes/admin'` → `dashboard.url()` |
 | `route('posts.show', post.id)` | `import { show } from '@/routes/posts'` → `show.url(post.id)` |
-| `route('posts.update', { post: 1, author: 2 })` | `update.url({ post: 1, author: 2 })` |
+| `route('posts.show', post.slug)` (route `/posts/{post:slug}`) | `show.url(post.slug)` atau `show.url({ slug: post.slug })` |
+| `route('posts.update', { post: 1, author: 2 })` | `update.url({ post: 1, author: 2 })` atau berurutan `update.url([1, 2])` |
 | `route('posts.index', { page: 2 })` (param di luar URI jadi query) | `index.url({ query: { page: 2 } })` |
+| `route('posts.index', { ...route().params, page: 2 })` | `index.url({ mergeQuery: { page: 2 } })`; nilai `null`/`undefined` menghapus parameter |
 | `route('posts.show', 1, true)` (absolute) | `` `${window.location.origin}${show.url(1)}` `` atau kirim URL absolut dari server |
 | `route().current('posts.*')` | Tidak ada padanan langsung. Bandingkan `page.url` Inertia dengan `index.url()` (`startsWith`), atau kirim flag aktif dari server |
+| `<form action={route('posts.store')} method="post">` (form HTML non-Inertia) | `<form {...store.form()}>` (Vue: `v-bind`), butuh form variant: `wayfinder({ formVariants: true })` dan `--with-form` saat generate manual, keduanya disamakan supaya file ter-generate tidak berganti-ganti |
 
-Ziggy memperlakukan parameter yang tidak ada di URI sebagai query string. Wayfinder tidak, jadi pindahkan ke `{ query: {...} }`.
+Ziggy memperlakukan parameter yang tidak ada di URI sebagai query string. Wayfinder tidak, jadi pindahkan ke `{ query: {...} }`. `mergeQuery` membaca `window.location.search`, jadi jangan dipakai di kode yang dieksekusi saat SSR.
 
-Contoh sebelum/sesudah (Svelte; React/Vue sama polanya, lihat [api.md](api.md)):
+### Inertia: `.url()` sebagai pengganti langsung
+
+`route(...)` menghasilkan string, jadi pengganti paling aman adalah `.url()` (juga string) untuk `router.visit`, `form.post/delete(...)`, dan `href`. Ini bekerja di semua versi Inertia. Bentuk objek (`form.submit(store())`, `<Link href={show(1)}>`) hanya untuk versi `@inertiajs/*` yang sudah mendukung Wayfinder, cek versinya sebelum memakainya. Sintaks per stack tidak berubah dari versi Ziggy: Svelte `$form.delete(...)`, React `delete` dari hook `useForm`, Vue `form.delete(...)` dan `:href="..."`.
+
+### Satu method controller untuk beberapa route
+
+Bila dua route atau lebih menunjuk ke method controller yang sama (mis. `ProfileController@edit` untuk `/profile` dan `/admin/profile`), export di `actions/` menjadi dictionary ber-key URI, bukan fungsi:
+
+```php
+Route::get('clients/{client}/payments', [ClientPaymentsController::class, 'index'])->name('clients.payments.index');
+Route::get('clients/{client}/payments-archive', [ClientPaymentsController::class, 'index'])->name('clients.payments.archive');
+```
+
+```typescript
+import { index } from '@/actions/App/Http/Controllers/ClientPaymentsController';
+index['/clients/{client}/payments']({ client: 1 });
+
+// Lebih mudah, dan padanannya dengan nama route Ziggy langsung terlihat:
+import { index as paymentsIndex } from '@/routes/clients/payments';
+paymentsIndex.url({ client: 1 });   // '/clients/1/payments'
+```
+
+Bila URI sama dan hanya beda verb, key diberi prefix verb (`'get /exports/{report}'`, `'post /exports/{report}'`, atau `'put|patch ...'`). Bentuk export untuk kasus ini pernah berubah antar versi beta (versi lebih lama menghasilkan nama ber-hash), jadi bila yang terlihat berbeda, ikuti file ter-generate.
+
+### Contoh sebelum/sesudah
+
+Svelte; React/Vue sama polanya:
 
 ```svelte
 <!-- SEBELUM -->
@@ -112,6 +145,7 @@ Contoh sebelum/sesudah (Svelte; React/Vue sama polanya, lihat [api.md](api.md)):
 
 Catatan:
 - Nama fungsi di `actions/` mengikuti nama method controller dalam camelCase (`destroyOthers`), sedangkan di `routes/` mengikuti segmen terakhir nama route. Cek file ter-generate bila ragu, terutama untuk nama route ber-tanda hubung.
+- Method bernama reserved word JS diberi akhiran `Method` (`delete` → `deleteMethod`, `import` → `importMethod`); `destroy` tetap `destroy`. Invokable controller di-import sebagai default export lalu dipanggil langsung: `import StorePostController from '@/actions/App/Http/Controllers/StorePostController'` → `StorePostController.url()`.
 - Kerjakan per file, lalu jalankan type-check (`npx tsc --noEmit` / `svelte-check` / `vue-tsc`) setelah tiap file. Hapus deklarasi global `route()` di langkah 7 justru membantu: setiap sisa pemanggilan akan muncul sebagai error tipe.
 
 ## Langkah 7: bongkar infrastruktur Ziggy

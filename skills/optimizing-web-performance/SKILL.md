@@ -1,10 +1,10 @@
 ---
 name: optimizing-web-performance
-description: Mengukur, mendiagnosis, dan memperbaiki performa muat halaman web (landing page, situs marketing, SPA/SSR) dengan metode baseline lalu penyebab lalu teknik lalu verifikasi dengan ukuran yang sama, mencakup Core Web Vitals (LCP, CLS, INP, FCP), rendering hybrid atau prerender, pipeline thumbnail gambar, galeri dan animasi yang hanya hidup saat terlihat, header cache nginx, font yang tidak render-blocking, serta laporan performa yang jujur soal batasnya. Gunakan saat halaman terasa lambat, skor Lighthouse rendah, LCP atau CLS buruk, gambar terlalu berat, cache tidak bekerja, atau sebelum dan sesudah optimasi perlu dibuktikan dengan angka, walau pengguna tidak menyebut skill ini. Cocok untuk permintaan seperti website lambat, optimasi performa, percepat landing page, LCP tinggi, kurangi ukuran gambar, atur cache nginx, audit performa, laporan performa, speed up page load, improve Core Web Vitals, fix slow LCP, web performance audit.
+description: Memperbaiki dan membuktikan perbaikan performa muat halaman web (landing page, situs marketing, SPA/SSR) dengan metode baseline lalu penyebab lalu teknik lalu verifikasi dengan kondisi ukur yang sama, mencakup rendering hybrid atau prerender, pipeline thumbnail gambar, galeri dan animasi yang hanya hidup saat terlihat, header cache nginx, font yang tidak render-blocking, verifikasi fungsional, serta laporan performa yang jujur soal batasnya. Pengukuran detail didelegasikan ke skill web-perf atau debug-optimize-lcp bila tersedia. Gunakan saat halaman terasa lambat, skor Lighthouse rendah, LCP atau CLS buruk, gambar terlalu berat, cache tidak bekerja, atau sebelum dan sesudah optimasi perlu dibuktikan dengan angka, walau pengguna tidak menyebut skill ini. Cocok untuk permintaan seperti website lambat, optimasi performa, percepat landing page, LCP tinggi, kurangi ukuran gambar, atur cache nginx, audit performa, laporan performa, speed up page load, improve Core Web Vitals, fix slow LCP, web performance audit.
 license: MIT
 metadata:
   author: robithyusuf
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Mengoptimasi Performa Web
@@ -19,13 +19,25 @@ Optimasi yang baik mengurangi **pekerjaan prematur**, bukan fitur atau kualitas 
 
 Dua pola yang hampir selalu berlaku: **tunda pekerjaan sampai ada bukti user membutuhkannya** (bukti = irisan viewport atau aksi user, bukan waktu idle atau timeout), dan **kirim ukuran yang sesuai tempat tampilnya** sambil menyimpan sumber penuh untuk saat user memintanya.
 
+## Pembagian kerja dengan skill pengukuran
+
+Skill ini fokus pada **perbaikan, verifikasi, dan laporan yang jujur**. Pengukuran dan diagnosis detail (trace, insight Core Web Vitals, rantai request, render-blocking, header cache per request) sudah ditangani skill lain. Bila tersedia, pakai itu untuk baseline **dan** untuk pengukuran ulang:
+
+| Alat | Cakupan | Pasang |
+|---|---|---|
+| Skill `web-perf` (cloudflare/skills) | Audit umum lewat Chrome DevTools MCP: CWV, render-blocking, rantai jaringan, cache, analisis codebase | `npx skills add https://github.com/cloudflare/skills --skill web-perf`, atau di Claude Code `/plugin marketplace add cloudflare/skills` lalu `/plugin install cloudflare@cloudflare` |
+| Skill `debug-optimize-lcp` (ChromeDevTools/chrome-devtools-mcp) | Bedah LCP per subpart (TTFB, load delay, load duration, render delay), elemen LCP, waterfall | Di Claude Code `/plugin marketplace add ChromeDevTools/chrome-devtools-mcp` lalu `/plugin install chrome-devtools-mcp@chrome-devtools-plugins` (MCP + skill) |
+| Chrome DevTools MCP saja | Tool trace dan network tanpa panduan skill | `claude mcp add chrome-devtools --scope user npx chrome-devtools-mcp@latest` |
+
+Skill-skill itu biasanya merekam satu trace. Metode di sini tetap berlaku di atasnya: kondisi ukur langkah 1 (throttling, viewport, cache dingin/hangat, median ≥ 3 run) harus diterapkan **identik** sebelum dan sesudah, dengan alat yang sama. Bila tidak ada yang tersedia, pakai fallback singkat di langkah 2.
+
 ## Alur kerja
 
 Salin checklist ini dan centang selama bekerja:
 
 ```
 - [ ] 1. Tetapkan kondisi ukur yang bisa diulang
-- [ ] 2. Rekam baseline (lab + sinyal pendukung)
+- [ ] 2. Rekam baseline (skill pengukuran atau fallback + sinyal pendukung)
 - [ ] 3. Petakan gejala ke penyebab, urutkan menurut dampak
 - [ ] 4. Terapkan teknik, masing-masing dengan pengamannya
 - [ ] 5. Verifikasi fungsional (lifecycle, fallback, tanpa regresi)
@@ -46,17 +58,12 @@ Angka hanya bisa dibandingkan bila kondisinya identik. Catat kondisi ini di lapo
 
 ### 2. Baseline
 
-Rekam metrik utama dan sinyal pendukung yang menjelaskan *mengapa* angkanya begitu:
+Rekam metrik utama (LCP, CLS, INP/TBT, FCP, TTFB) per skenario langkah 1, plus sinyal pendukung yang menjelaskan *mengapa* angkanya begitu.
 
-| Metrik | Ambang "baik" (p75 lapangan) |
-|---|---|
-| LCP | ≤ 2,5 dtk |
-| INP | ≤ 200 ms |
-| CLS | ≤ 0,1 |
-| FCP | ≤ 1,8 dtk |
-| TTFB | ≤ 0,8 dtk |
+- **Dengan `web-perf` / `debug-optimize-lcp` / Chrome DevTools MCP**: ikuti alur skill tersebut untuk trace, insight (mis. `LCPBreakdown`, `RenderBlocking`, `CLSCulprits`), dan analisis network. Ambang "baik" dan definisi metrik juga ada di sana. Set throttling lewat tool `emulate` sesuai langkah 1, lalu ulangi per skenario.
+- **Fallback tanpa alat itu**: panel Performance atau Lighthouse di DevTools dengan throttling yang sama. Ambang "baik" (p75 lapangan): LCP ≤ 2,5 dtk, INP ≤ 200 ms, CLS ≤ 0,1, FCP ≤ 1,8 dtk, TTFB ≤ 0,8 dtk. Dari trace, catat rantai request kritis, resource render-blocking, request yang masih pending saat LCP, dan long task.
 
-Sinyal pendukung, dijalankan di console halaman yang diuji:
+Sinyal pendukung berikut tidak dicakup skill pengukuran di atas tetapi langsung menunjuk teknik di skill ini (DOM bertahap, motion terikat visibilitas, pipeline thumbnail). Jalankan di console halaman yang diuji (atau lewat `evaluate_script` bila memakai MCP):
 
 ```js
 // Jumlah elemen DOM dan gambar
@@ -78,15 +85,13 @@ const visible = running.filter(a => {
   .map(i => [i.currentSrc, `${i.naturalWidth}x${i.naturalHeight}`, `${i.clientWidth}px`]);
 ```
 
-Dari sisi server:
+Header cache per kelas aset dan TTFB dari sisi server (fallback, dan tetap dipakai di langkah 6):
 
 ```bash
 curl -sI https://example.com/ | grep -iE 'cache-control|age|etag|content-length'
 curl -sI https://example.com/<path-aset-ber-hash>.js | grep -i cache-control
 curl -s -o /dev/null -w 'ttfb=%{time_starttransfer} total=%{time_total}\n' https://example.com/
 ```
-
-Dari trace DevTools (panel Performance atau Lighthouse): rantai request kritis, resource render-blocking, request yang masih pending saat LCP, long task, dan forced reflow. Bila tersedia MCP DevTools, trace dan insight-nya bisa diambil lewat tool tersebut.
 
 Tandai jelas mana **hasil ukur** dan mana **estimasi model** (mis. "potensi penghematan" dari Lighthouse). Estimasi bukan hasil sesudah perbaikan.
 
@@ -104,6 +109,8 @@ Petakan setiap temuan ke sumber beban dan teknik. Urutkan menurut dampak terukur
 | Banyak animasi berjalan, sedikit terlihat; forced reflow | Animasi/rAF/pengukuran tanpa gerbang visibilitas | Motion terikat visibilitas |
 | CSS font di rantai kritis | Stylesheet font eksternal render-blocking | Font non-render-blocking |
 | CLS > 0 setelah perubahan | Gambar tanpa dimensi, swap font | Dimensi eksplisit, cek ulang CLS |
+
+Bila baseline datang dari `web-perf` atau `debug-optimize-lcp`, insight-nya masuk ke tabel ini: element render delay besar di `LCPBreakdown` sering berarti LCP menunggu hydration; `RenderBlocking` atau `NetworkRequestsDepGraph` yang menunjuk stylesheet font berarti font; resource load duration besar pada gambar berarti pipeline thumbnail; `CLSCulprits` berarti dimensi eksplisit; `DocumentLatency` berarti TTFB.
 
 TTFB yang tinggi layak dimonitor, tetapi jangan menyalahkannya sebelum terbukti; bandingkan dulu dengan selisih cold vs warm.
 
@@ -147,7 +154,7 @@ Sesudah deploy ke lingkungan uji:
    ```
    Keduanya harus sama. Bila `/` jauh lebih kecil, server menyajikan shell SPA; status `200` tidak membedakan keduanya.
 2. Cek header cache tiap kelas aset dengan `curl -sI`.
-3. Ulangi audit cold dan warm dengan kondisi langkah 1, median ≥ 3 run.
+3. Ulangi audit cold dan warm dengan kondisi langkah 1 dan **alat yang sama dengan baseline** (skill/MCP yang sama, atau fallback yang sama), median ≥ 3 run. Angka dari alat berbeda tidak boleh dibandingkan langsung.
 
 Target awal yang masuk akal: tidak ada regresi CLS, tidak ada request gambar gagal, LCP cold turun secara material, repeat view mendapat cache hit. Data lapangan (RUM / CrUX) lebih menentukan daripada satu trace lab.
 

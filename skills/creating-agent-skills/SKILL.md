@@ -4,7 +4,7 @@ description: Membuat, memporting, merapikan, dan memvalidasi Agent Skills (folde
 license: MIT
 metadata:
   author: robithyusuf
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Membuat Agent Skill
@@ -16,6 +16,7 @@ Skill = folder berisi `SKILL.md` (frontmatter YAML + instruksi Markdown), opsion
 Salin checklist ini dan centang selama bekerja:
 
 ```
+- [ ] 0. Cari skill/guideline yang sudah ada; pakai atau pinjam yang terbaik
 - [ ] 1. Pahami tujuan: apa yang dikerjakan, kapan dipicu, output seperti apa
 - [ ] 2. Pilih nama (kebab-case, sama dengan nama folder)
 - [ ] 3. Tulis description (apa + kapan + kata pemicu)
@@ -25,6 +26,12 @@ Salin checklist ini dan centang selama bekerja:
 - [ ] 7. Jalankan validator sampai lolos
 - [ ] 8. Uji dengan 2-3 prompt nyata, perbaiki berdasarkan perilaku agent
 ```
+
+**Langkah 0 — jangan menulis ulang yang sudah ada.** Cari dulu: dokumentasi/AI guideline resmi vendor (mis. Laravel Boost, MCP resmi framework), `npx skills find <topik>` / [skills.sh](https://skills.sh), dan repo skill populer. Urutan pilihan:
+- **REPLACE**: alternatif resmi atau terawat sudah mencakup kebutuhan → pasang itu saja, jangan duplikasi.
+- **MERGE**: alternatif bagus tapi kurang konteks Anda → tulis skill ramping berisi selisihnya (konvensi, jebakan, keputusan Anda) dan rujuk/pinjam bagian terbaiknya.
+- **KEEP**: belum ada yang setara → tulis sendiri.
+Lebih lengkap tidak berarti lebih baik. Skill yang terlalu panjang memakan konteks, menenggelamkan aturan penting, dan bisa membuat agent kaku atau salah memilih langkah.
 
 **Langkah 1.** Kalau skill berasal dari percakapan atau skill lama, ekstrak dulu: langkah yang diulang, koreksi yang pernah diberikan pengguna, format output, tool yang dipakai. Tanyakan hanya yang benar-benar tidak bisa disimpulkan.
 
@@ -58,7 +65,15 @@ python3 scripts/validate_skill.py <folder-skill>
 
 Perbaiki semua `error`, lalu jalankan ulang sampai `[OK]`. `peringatan` boleh dibiarkan bila ada alasannya.
 
-**Langkah 8 — uji.** Jalankan agent baru dengan skill terpasang pada 2-3 prompt realistis (termasuk satu yang *tidak* seharusnya memicu skill). Amati: apakah skill dipicu, file mana yang dibaca, langkah mana yang dilewati. Perbaiki description bila tidak terpicu, dan perbaiki isi bila agent salah langkah.
+**Langkah 8 — uji.** Jalankan agent baru dengan skill terpasang pada 2-3 prompt realistis (termasuk satu yang *tidak* seharusnya memicu skill). Amati: apakah skill dipicu, file mana yang dibaca, langkah mana yang dilewati. Perbaiki description bila tidak terpicu, dan perbaiki isi bila agent salah langkah. Untuk uji terukur (eval dengan baseline, benchmark, optimasi description otomatis), pakai skill `skill-creator` dari [anthropics/skills](https://github.com/anthropics/skills) daripada membuat sistem eval sendiri.
+
+## Menyesuaikan dengan model
+
+Detail yang dibutuhkan tergantung model yang menjalankan skill:
+- **Model besar** (kelas Opus/GPT-5): cukup tujuan, prinsip, keputusan penting, dan jebakan. Langkah yang terlalu rinci justru mengekang.
+- **Model kecil/cepat** (kelas Haiku/mini, model lokal): butuh langkah eksplisit, perintah persis, contoh input→output, dan checklist.
+
+Pola yang melayani keduanya: SKILL.md ramping (inti + keputusan), lalu detail langkah demi langkah di `references/` yang hanya dibaca bila perlu. Uji skill dengan model yang benar-benar dipakai; kalau model besar jadi kaku, pangkas; kalau model kecil tersesat, tambah langkah atau contoh.
 
 ## Memporting skill lama
 

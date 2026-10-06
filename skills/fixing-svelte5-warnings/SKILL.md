@@ -4,7 +4,7 @@ description: Menangani compiler warning Svelte 5 (runes mode) seperti state_refe
 license: MIT
 metadata:
   author: robithyusuf
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Memperbaiki Warning Svelte 5
@@ -19,7 +19,7 @@ Tujuannya: warning hilang karena penyebabnya diperbaiki, bukan karena disembunyi
 - [ ] 3. Klasifikasi tiap temuan: fix atau false positive
 - [ ] 4. Perbaiki akar masalah per kode (lihat references/warnings.md)
 - [ ] 5. Suppress per-instance hanya untuk false positive terverifikasi, beri alasan
-- [ ] 6. Jalankan ulang svelte-check, bandingkan jumlah warning
+- [ ] 6. Jalankan ulang svelte-check (plus autofixer per file bila tersedia), bandingkan jumlah warning
 ```
 
 **1. Kumpulkan.** Jalankan dari root proyek. Pakai script `check` di `package.json` bila ada, karena biasanya sudah memuat flag `--tsconfig` yang benar.
@@ -48,7 +48,13 @@ npx svelte-check --output machine-verbose 2>/dev/null \
 | `a11y_label_has_associated_control` | `<label>` tanpa `for` dan tanpa kontrol di dalamnya | `for` + `id` yang cocok, atau bungkus kontrolnya |
 | `a11y_missing_attribute` | `<img>` tanpa `alt`, `<a>` tanpa `href`, `<iframe>` tanpa `title`, dll. | Tambah atribut wajib; `alt=""` untuk gambar dekoratif |
 
-Kode lain: cari di dokumentasi resmi (`https://svelte.dev/docs/svelte/compiler-warnings`), baca kondisi pemicunya, lalu tambahkan entri baru ke references/warnings.md mengikuti template di bagian akhir file itu.
+Kode lain: jangan menebak. Ambil penjelasan resmi, baca kondisi pemicunya, lalu tambahkan entri baru ke references/warnings.md mengikuti template di bagian akhir file itu.
+
+```bash
+npx -y @sveltejs/mcp get-documentation "svelte/compiler-warnings"   # teks resmi semua kode warning
+```
+
+Alternatif tanpa npx: buka `https://svelte.dev/e/<kode>` (redirect ke bagian kode itu di halaman compiler-warnings).
 
 **5. Suppress hanya bila perlu.** Taruh komentar tepat di atas baris/elemen pemicu, sebut kodenya persis, dan tulis alasan dalam kurung:
 
@@ -66,6 +72,16 @@ Kode lain: cari di dokumentasi resmi (`https://svelte.dev/docs/svelte/compiler-w
 Beberapa kode boleh digabung dengan koma dalam satu komentar. Jangan pakai `svelte-ignore` tanpa kode atau dengan kode yang tidak relevan, karena itu ikut menyembunyikan warning lain di elemen yang sama.
 
 **6. Verifikasi.** Jalankan ulang perintah langkah 1. Jumlah per kode harus turun sesuai yang diperbaiki, dan tidak ada kode baru yang muncul. Untuk perbaikan `state_referenced_locally`, uji juga perilakunya: ubah nilai sumber (navigasi ke data lain, update prop) dan pastikan UI ikut berubah, atau sengaja tidak berubah bila memang disalin.
+
+**Cek tambahan dengan autofixer resmi (opsional).** Setelah satu file selesai diperbaiki, jalankan `svelte-autofixer` dari tooling AI resmi Svelte pada file itu:
+
+```bash
+npx -y @sveltejs/mcp svelte-autofixer src/lib/Komponen.svelte   # satu path (atau kode inline) per panggilan; opsi --svelte-version 4|5, --async
+```
+
+Output berisi `issues` (warning compiler beserta link `svelte.dev/e/<kode>`) dan `suggestions` (saran analisis statis tambahan). Exit code selalu 0, jadi baca isinya. svelte-check tetap sumber kebenaran karena memeriksa seluruh proyek dengan `svelte.config.js`; bila autofixer tidak tersedia (offline, npx diblokir), lewati langkah ini. Autofixer membaca kata di dalam alasan `svelte-ignore` (teks dalam kurung) sebagai kode dan melapor `svelte-ignore comment is used, but not warned`, padahal compiler tidak. Abaikan suggestion itu, jangan hapus alasannya.
+
+Bila agen terhubung ke Svelte MCP server (`https://mcp.svelte.dev/mcp`), pakai tool `svelte-autofixer`, `list-sections`, dan `get-documentation` langsung, tanpa npx.
 
 ## Kapan suppress vs fix
 
@@ -121,3 +137,4 @@ npx svelte-check --fail-on-warnings
 
 - Penyebab, kondisi pemicu, dan contoh before/after per kode warning, plus template untuk menambah kode baru: [references/warnings.md](references/warnings.md). Baca bagian kode yang relevan saat langkah 3-4.
 - Daftar lengkap kode warning resmi: `https://svelte.dev/docs/svelte/compiler-warnings`
+- Tooling AI resmi Svelte (MCP server, CLI `@sveltejs/mcp`, skill): `https://svelte.dev/docs/ai/overview`. Dokumentasi versi LLM: `https://svelte.dev/llms.txt`

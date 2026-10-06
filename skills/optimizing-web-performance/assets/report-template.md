@@ -10,7 +10,7 @@ bawah adalah rekaman audit pada **<YYYY-MM-DD>**, bukan jaminan permanen.
 |---|---|
 | Target | <https://staging.example.com/path> |
 | Build | <build produksi di belakang web server / dev server (hanya untuk perilaku)> |
-| Alat | <Chrome DevTools Performance / Lighthouse / WebPageTest / RUM> |
+| Alat | <web-perf / debug-optimize-lcp (Chrome DevTools MCP) / DevTools Performance / Lighthouse / RUM; sama sebelum dan sesudah> |
 | Throttling | <Fast 4G, CPU 4×> |
 | Viewport | <desktop 1280×720, mobile 390×844> |
 | Cache | <dingin dan hangat> |

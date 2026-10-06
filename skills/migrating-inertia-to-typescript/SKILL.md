@@ -4,7 +4,7 @@ description: Memigrasikan frontend Laravel + Inertia.js (Svelte 5, React, atau V
 license: MIT
 metadata:
   author: robithyusuf
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Migrasi Laravel + Inertia dari JavaScript ke TypeScript
@@ -97,7 +97,7 @@ Rangkum hasilnya ke tabel singkat sebelum mulai: jumlah file `.js`, jumlah kompo
 
 **B. Strictness.** Default `"strict": true` sejak awal, karena melonggarkan belakangan hampir tidak pernah terjadi. Pakai `unknown` sebagai default untuk data yang belum jelas; `any` hanya escape hatch sementara dengan komentar `// TODO: type this`. Untuk codebase sangat besar yang harus tetap rilis selama migrasi, tambahkan `"allowJs": true` sementara agar file `.js` lama tetap bisa di-import, lalu hapus di fase 7.
 
-**C. Versi Inertia.** Bila `InertiaConfig` ada di `@inertiajs/core`, pakai augmentasi `InertiaConfig` (cara resmi). Bila tidak ada (v2 awal), pakai augmentasi `PageProps` lama atau upgrade adapter dulu. Bila proyek sudah v3, cek upgrade guide resmi; pola props dan form di skill ini tetap berlaku. Detail di [references/types.md](references/types.md).
+**C. Versi Inertia.** Bila `InertiaConfig` ada di `@inertiajs/core`, pakai augmentasi `InertiaConfig` (cara resmi). Bila tidak ada (v2 awal), pakai augmentasi `PageProps` lama atau upgrade adapter dulu. Bila proyek sudah v3, cek upgrade guide resmi; pola props dan form di skill ini tetap berlaku. Detail di [references/types.md](references/types.md). Sumber kebenaran untuk setup type terbaru tetap [dokumentasi TypeScript resmi Inertia](https://inertiajs.com/docs/v2/advanced/typescript); cek di sana bila contoh di skill ini tidak cocok dengan versi adapter.
 
 **D. Package manager.** Dengan pnpm, augmentasi `@inertiajs/core` tidak ter-resolve karena paket tidak di-hoist. Tambahkan `public-hoist-pattern[]=@inertiajs/core` ke `.npmrc` atau jadikan `@inertiajs/core` dependency langsung.
 

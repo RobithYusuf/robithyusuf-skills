@@ -4,7 +4,7 @@ description: Audits a codebase, branch, pull request, or deployment against a st
 license: MIT
 metadata:
   author: robithyusuf
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Auditing Against a Security Baseline
@@ -69,7 +69,7 @@ curl -s https://example.com/some-page | grep -oE '(data-page|__NEXT_DATA__|__NUX
 
 Also run the project's own type checks, tests, and route listing. For leaked credentials in the repo, use a secret scanner (for example the `scanning-secrets` skill or `gitleaks`) and report only redacted output.
 
-**9. Report.** Use the output contract below.
+**9. Report.** Before writing a finding, try to disprove it: confirm the code path is reachable, the input is attacker-controlled, and no middleware, framework default, proxy, or platform setting already mitigates it. Downgrade to Risk or Needs runtime validation, or drop it, when you cannot rule these out. Then use the output contract below.
 
 ## Choosing which controls apply
 
@@ -122,3 +122,10 @@ For a hardening plan instead of an audit, group the same controls by tier and li
 
 - [references/controls.md](references/controls.md): full control checklist by tier. Read when assessing a specific area or writing a hardening plan.
 - [references/risk-lens.md](references/risk-lens.md): cross-stack prompts for spotting risk per surface. Read while tracing entry points and flows.
+
+## Related tools
+
+This skill is the broad baseline. For narrower jobs, prefer the specialised tool when available:
+- Reviewing only a PR or diff: Claude Code `/security-review`, or `differential-review` from [trailofbits/skills](https://github.com/trailofbits/skills).
+- Dependency and supply-chain risk: `supply-chain-risk-auditor` from trailofbits/skills.
+- Secrets in the repo or history: the `scanning-secrets` skill.
