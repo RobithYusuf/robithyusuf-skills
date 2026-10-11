@@ -29,6 +29,12 @@ Kumpulan **Agent Skills** dan aturan agent buatan sendiri. Formatnya mengikuti s
 | [`fixing-svelte5-warnings`](skills/fixing-svelte5-warnings/SKILL.md) | Memperbaiki warning compiler Svelte 5 dari akar masalahnya |
 | [`optimizing-web-performance`](skills/optimizing-web-performance/SKILL.md) | Metode ukur → diagnosis → perbaiki → verifikasi untuk performa web |
 
+**Video & motion**
+
+| Skill | Fungsi |
+|---|---|
+| [`creating-motion-videos`](skills/creating-motion-videos/SKILL.md) | Video promosi/explainer Remotion yang terasa seperti After Effects: cerita di grid ketukan, kunci gerak, aset generatif (gpt-image/Codex), audio, verifikasi, arsip |
+
 | Aturan | Fungsi |
 |---|---|
 | [`rules/AGENTS.global.md`](rules/AGENTS.global.md) | Aturan global: gaya, kata kunci, cara kerja, format laporan |
